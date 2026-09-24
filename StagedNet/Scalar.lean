@@ -24,7 +24,7 @@ public section
 
 /-- The object-level instances of a scalar type `F`, as spliced code. -/
 structure Scalar [Staged] (F : Code Type) where
-  /-- Addition, for `dot` and `vadd`. -/
+  /-- Addition, for `dot`, `vadd` and `affine`. -/
   add : Code (Add ~F)
   /-- Multiplication, for `dot`. -/
   mul : Code (Mul ~F)
