@@ -53,19 +53,6 @@ def affine [Staged] {F : Code Type} (s : Scalar F) (m n : Nat)
   Vec.zipWith (α := Vec n F) (β := F) (γ := F) m
     (fun row bi => `⟨~(dot s n row x) + ~bi⟩) W b
 
-/-- A dot product of length 3, staged. -/
-def dot3 (xs ys : ~(Vec 3 `⟨Float⟩)) : Float :=
-  ~(dot Scalar.float 3 `⟨xs⟩ `⟨ys⟩)
-
-/-- The same dot product as a hand-written runtime loop, for comparison with
-`dot3`. The length is only known at runtime, so the loop and the bounds checks
-remain in the code. -/
-def dotLoop (xs ys : Array Float) : Float := Id.run do
-  let mut acc := 0
-  for i in [0:min xs.size ys.size] do
-    acc := acc + xs[i]! * ys[i]!
-  return acc
-
 end
 
 #guard_staged fun (xs ys : ~(Vec 3 `⟨Float⟩)) => ~(dot Scalar.float 3 `⟨xs⟩ `⟨ys⟩) =ₛ
@@ -90,17 +77,5 @@ end
     (W.1.1 * x.1 + (W.1.2.1 * x.2.1 + (W.1.2.2.1 * x.2.2.1 + 0)) + b.1,
      W.2.1.1 * x.1 + (W.2.1.2.1 * x.2.1 + (W.2.1.2.2.1 * x.2.2.1 + 0)) + b.2.1,
      ())
-
-/-!
-The emitted code for `dot3`, verbatim. The recursion on `n` ran at staging time,
-so no loop is left.
--/
-
-/--
-info: def StagedNet.dot3 : Float × Float × Float × Unit → Float × Float × Float × Unit → Float :=
-fun xs ys => xs.fst * ys.fst + (xs.snd.fst * ys.snd.fst + (xs.snd.snd.fst * ys.snd.snd.fst + 0))
--/
-#guard_msgs in
-#print dot3
 
 end StagedNet

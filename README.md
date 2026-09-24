@@ -146,46 +146,6 @@ in the application
   (Arch.dense 784 64).seq (Arch.dense 128 10)
 ```
 
-### The loop disappears
-
-`dot` recurses on the length `n`, which is known at staging time, so the
-recursion unrolls completely. `dot3` stages a dot product of length 3 (from
-`StagedNet/LinAlg.lean`):
-
-```lean
-def dot3 (xs ys : ~(Vec 3 `⟨Float⟩)) : Float :=
-  ~(dot Scalar.float 3 `⟨xs⟩ `⟨ys⟩)
-```
-
-On the left is the code emitted for `dot3`. On the right, for comparison, is
-the same dot product as a hand-written runtime loop over arrays. There the
-length is only known at runtime, so the loop and the bounds checks stay.
-
-<table>
-<tr><th><code>#print dot3</code></th><th>Hand-written loop</th></tr>
-<tr>
-<td valign="top">
-
-```lean
-def StagedNet.dot3 : Float × Float × Float × Unit → Float × Float × Float × Unit → Float :=
-fun xs ys => xs.fst * ys.fst + (xs.snd.fst * ys.snd.fst + (xs.snd.snd.fst * ys.snd.snd.fst + 0))
-```
-
-</td>
-<td valign="top">
-
-```lean
-def dotLoop (xs ys : Array Float) : Float := Id.run do
-  let mut acc := 0
-  for i in [0:min xs.size ys.size] do
-    acc := acc + xs[i]! * ys[i]!
-  return acc
-```
-
-</td>
-</tr>
-</table>
-
 ### The emitted code is correct
 
 The proofs use `Int` instead of `Float` as the scalar. `Float` addition is not
