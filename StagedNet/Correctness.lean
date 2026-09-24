@@ -90,6 +90,21 @@ theorem matvec_den {m n : Nat} (W : Matrix (Fin m) (Fin n) Int) (x : Fin n → I
     simp [matvec, Vec.map, ofMat, ofFin, ofFinMap] at ih ⊢
     exact Prod.ext (dot_den _ _) (ih _)
 
+/-- `affine` and `vadd` after `matvec` have the same denotation, for every
+scalar. -/
+theorem affine_den {F : Code Type} (s : Scalar F) {m n : Nat} (W : Code ~(Mat m n F))
+    (x : Code ~(Vec n F)) (b : Code ~(Vec m F)) :
+    (affine s m n W x b).den = (vadd s m (matvec s m n W x) b).den := by
+  induction m with
+  | zero => rfl
+  | succ m ih =>
+    simp only [affine, vadd, matvec, Vec.zipWith, Vec.map] at ih ⊢
+    have h : `⟨~(Vec.map (α := Vec n F) (β := F) m (fun row => dot s n row x) `⟨(~W).2⟩)⟩ =
+        Vec.map (α := Vec n F) (β := F) m (fun row => dot s n row x) `⟨(~W).2⟩ := by
+      ext; rfl
+    rw [h]
+    exact Prod.ext rfl (ih _ _)
+
 theorem relu_den {n : Nat} (x : Fin n → Int) :
     (Vec.map (α := `⟨Int⟩) (β := `⟨Int⟩) n (fun v => `⟨max 0 ~v⟩) `⟨ofFin x⟩).den =
       ofFin (fun k => max 0 (x k)) := by
@@ -129,7 +144,7 @@ theorem forward'_den {F : Code Type} (s : Scalar F) {i o : Nat} (a : Arch i o)
     (p : Code ~(Params F a)) (x : Code ~(Vec i F)) :
     (forward' s a p x).den = (forward s a p x).den := by
   induction a with
-  | dense => rfl
+  | dense i o => exact affine_den s _ x _
   | relu => rfl
   | seq f g ihf ihg =>
     simp only [forward', forward]

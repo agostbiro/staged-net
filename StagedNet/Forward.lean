@@ -34,13 +34,14 @@ def forward [Staged] {F : Code Type} (s : Scalar F) {i o : Nat} :
     Vec.map (α := F) (β := F) n (fun v => `⟨max 0 ~v⟩) x
   | .seq f g, p, x => forward s g `⟨(~p).2⟩ (forward s f `⟨(~p).1⟩ x)
 
-/-- Like `forward`, but the `seq` arm binds the output of `f` with an
-object-level `let` before running `g`, so each layer's output is computed once
-and `g` reads it through a variable. -/
+/-- Like `forward`, but without duplicated work. The `seq` arm binds the output
+of `f` with an object-level `let` before running `g`, so each layer's output is
+computed once and `g` reads it through a variable. The `dense` arm uses
+`affine`, so the `matvec` tuple is not spliced into every element of the sum. -/
 @[expose]
 def forward' [Staged] {F : Code Type} (s : Scalar F) {i o : Nat} :
     (a : Arch i o) → Code ~(Params F a) → Code ~(Vec i F) → Code ~(Vec o F)
-  | .dense i o, p, x => vadd s o (matvec s o i `⟨(~p).1⟩ x) `⟨(~p).2⟩
+  | .dense i o, p, x => affine s o i `⟨(~p).1⟩ x `⟨(~p).2⟩
   | .relu n, _, x =>
     let ⟨_, _, _iZero, _iMax⟩ := s
     Vec.map (α := F) (β := F) n (fun v => `⟨max 0 ~v⟩) x
@@ -75,22 +76,12 @@ and `=~` would unfold the `let`s, so it could not check they are there. -/
 #guard_staged (fun (p : ~(Params `⟨Float⟩ net)) (x : ~(Vec 2 `⟨Float⟩)) =>
     ~(forward' Scalar.float net `⟨p⟩ `⟨x⟩)) =ₛ fun (p : ~(Params `⟨Float⟩ net)) (x : ~(Vec 2 `⟨Float⟩)) =>
   let y :=
-    ((p.1.1.1.1 * x.1 + (p.1.1.1.2.1 * x.2.1 + 0),
-          p.1.1.2.1.1 * x.1 + (p.1.1.2.1.2.1 * x.2.1 + 0),
-          p.1.1.2.2.1.1 * x.1 + (p.1.1.2.2.1.2.1 * x.2.1 + 0), ()).1 +
-        p.1.2.1,
-      (p.1.1.1.1 * x.1 + (p.1.1.1.2.1 * x.2.1 + 0),
-          p.1.1.2.1.1 * x.1 + (p.1.1.2.1.2.1 * x.2.1 + 0),
-          p.1.1.2.2.1.1 * x.1 + (p.1.1.2.2.1.2.1 * x.2.1 + 0), ()).2.1 +
-        p.1.2.2.1,
-      (p.1.1.1.1 * x.1 + (p.1.1.1.2.1 * x.2.1 + 0),
-          p.1.1.2.1.1 * x.1 + (p.1.1.2.1.2.1 * x.2.1 + 0),
-          p.1.1.2.2.1.1 * x.1 + (p.1.1.2.2.1.2.1 * x.2.1 + 0), ()).2.2.1 +
-        p.1.2.2.2.1,
+    (p.1.1.1.1 * x.1 + (p.1.1.1.2.1 * x.2.1 + 0) + p.1.2.1,
+      p.1.1.2.1.1 * x.1 + (p.1.1.2.1.2.1 * x.2.1 + 0) + p.1.2.2.1,
+      p.1.1.2.2.1.1 * x.1 + (p.1.1.2.2.1.2.1 * x.2.1 + 0) + p.1.2.2.2.1,
       ());
   let y := (max 0 y.1, max 0 y.2.1, max 0 y.2.2.1, ());
-  ((p.2.2.1.1.1 * y.1 + (p.2.2.1.1.2.1 * y.2.1 + (p.2.2.1.1.2.2.1 * y.2.2.1 + 0)), ()).1 +
-      p.2.2.2.1,
+  (p.2.2.1.1.1 * y.1 + (p.2.2.1.1.2.1 * y.2.1 + (p.2.2.1.1.2.2.1 * y.2.2.1 + 0)) + p.2.2.2.1,
     ())
 
 /-!
@@ -301,23 +292,12 @@ info: def StagedNet.netFn' : (((Float × Float × Unit) × (Float × Float × Un
   Float × Float × Unit → Float × Unit :=
 fun p x =>
   have y :=
-    ((p.fst.fst.fst.fst * x.fst + (p.fst.fst.fst.snd.fst * x.snd.fst + 0),
-            p.fst.fst.snd.fst.fst * x.fst + (p.fst.fst.snd.fst.snd.fst * x.snd.fst + 0),
-            p.fst.fst.snd.snd.fst.fst * x.fst + (p.fst.fst.snd.snd.fst.snd.fst * x.snd.fst + 0), ()).fst +
-        p.fst.snd.fst,
-      (p.fst.fst.fst.fst * x.fst + (p.fst.fst.fst.snd.fst * x.snd.fst + 0),
-              p.fst.fst.snd.fst.fst * x.fst + (p.fst.fst.snd.fst.snd.fst * x.snd.fst + 0),
-              p.fst.fst.snd.snd.fst.fst * x.fst + (p.fst.fst.snd.snd.fst.snd.fst * x.snd.fst + 0), ()).snd.fst +
-        p.fst.snd.snd.fst,
-      (p.fst.fst.fst.fst * x.fst + (p.fst.fst.fst.snd.fst * x.snd.fst + 0),
-                p.fst.fst.snd.fst.fst * x.fst + (p.fst.fst.snd.fst.snd.fst * x.snd.fst + 0),
-                p.fst.fst.snd.snd.fst.fst * x.fst + (p.fst.fst.snd.snd.fst.snd.fst * x.snd.fst + 0), ()).snd.snd.fst +
-        p.fst.snd.snd.snd.fst,
-      ());
+    (p.fst.fst.fst.fst * x.fst + (p.fst.fst.fst.snd.fst * x.snd.fst + 0) + p.fst.snd.fst,
+      p.fst.fst.snd.fst.fst * x.fst + (p.fst.fst.snd.fst.snd.fst * x.snd.fst + 0) + p.fst.snd.snd.fst,
+      p.fst.fst.snd.snd.fst.fst * x.fst + (p.fst.fst.snd.snd.fst.snd.fst * x.snd.fst + 0) + p.fst.snd.snd.snd.fst, ());
   have y := (max 0 y.fst, max 0 y.snd.fst, max 0 y.snd.snd.fst, ());
-  ((p.snd.snd.fst.fst.fst * y.fst +
-            (p.snd.snd.fst.fst.snd.fst * y.snd.fst + (p.snd.snd.fst.fst.snd.snd.fst * y.snd.snd.fst + 0)),
-          ()).fst +
+  (p.snd.snd.fst.fst.fst * y.fst +
+        (p.snd.snd.fst.fst.snd.fst * y.snd.fst + (p.snd.snd.fst.fst.snd.snd.fst * y.snd.snd.fst + 0)) +
       p.snd.snd.snd.fst,
     ())
 -/
