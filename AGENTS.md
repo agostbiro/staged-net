@@ -21,7 +21,7 @@ Thyme (https://github.com/frangio/thyme) is the staging library, pinned by commi
 - Every file starts with `module`, then `public import Thyme` and `open Thyme.Prelude`, matching Thyme's style. Definitions live in a `public section` and staged definitions carry `@[expose]`, otherwise importing modules cannot unfold them and the coherence check fails.
 - A module whose `#guard_staged` commands mention definitions from another project module needs that module imported twice: `public import StagedNet.Vec` for the definitions and `meta import StagedNet.Vec` for the guard commands.
 - The scalar is a parameter `(F : Code Type)` plus a `Scalar F` bundle of spliced instances (`StagedNet/Scalar.lean`). Thyme only sees instances that are local variables, so every metaprogram that uses a scalar operation starts with `let ⟨_iAdd, _iMul, _iZero, _iMax⟩ := s`, underscore-prefixed because the names are used only by instance synthesis.
-- `StagedNet/Guard.lean` is a copy of Thyme's `#guard_staged`; `meta import` it. `#guard_staged e =ₛ expected` checks the staged elaboration of `e` is syntactically equal to `expected`; `=~` checks up to reducible defeq. Every deliverable gets a guard.
+- `StagedNet/Guard.lean` is a copy of Thyme's `#guard_staged`; `meta import` it. `#guard_staged e =ₛ expected` checks the staged elaboration of `e` is syntactically equal to `expected`; `=~` checks up to definitional equality at default transparency, so projections of pairs and `let`s reduce. Every deliverable gets a guard.
 - `leanOptions.weak.thyme.checkCoherence = true` in `lakefile.toml` makes Thyme check that generated code is defeq to its denotation. Keep it on.
 - Keep every staged output shown in the README a literal copy of what Lean printed.
 
