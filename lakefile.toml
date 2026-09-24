@@ -1,0 +1,32 @@
+name = "staged-net"
+version = "0.1.0"
+defaultTargets = ["StagedNet"]
+
+# Run `lake lint` to lint with Batteries.
+lintDriver = "batteries/runLinter"
+
+# Thyme has no releases, so it is pinned by commit. This commit is the one that
+# makes spliced instances available to instance synthesis, which the
+# scalar-generic definitions rely on.
+[[require]]
+name = "thyme"
+git = "https://github.com/frangio/thyme"
+rev = "4e89fa7d2f73daf7138fe3b4e510c1acc44777ea"
+
+# Mathlib v4.33.0 pins the same Batteries revision as the require above.
+# Mathlib supplies `dotProduct` and `Matrix.mulVec` for the reference
+# implementation that the staged code is proved equal to.
+[[require]]
+name = "batteries"
+git = "https://github.com/leanprover-community/batteries"
+rev = "v4.33.0"
+
+[[require]]
+name = "mathlib"
+git = "https://github.com/leanprover-community/mathlib4"
+rev = "v4.33.0"
+
+[[lean_lib]]
+name = "StagedNet"
+# Check that every generated term is definitionally equal to its denotation.
+leanOptions.weak.thyme.checkCoherence = true
