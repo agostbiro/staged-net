@@ -1,6 +1,6 @@
 # staged-net
 
-A small demo that staged compilation with two-level type theory can take a
+A small demo to show that staged compilation with two-level type theory can take a
 neural-network architecture known at staging time and emit fully unrolled,
 loop-free, well-typed Lean code. Layer-size mismatches are rejected by Lean's
 type checker, and the generated code is proved equal to a reference
