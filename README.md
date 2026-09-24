@@ -66,21 +66,18 @@ def forward [Staged] {F : Code Type} (s : Scalar F) {i o : Nat} :
 
 ### The emitted code
 
-`#print` shows the body that staging produced. On the left are the first lines
-of `netFn`, built with the naive `forward`. Its `seq` splices the whole hidden
+`#print` shows the body that staging produced. The first block is the start of
+`netFn`, built with the naive `forward`. Its `seq` splices the whole hidden
 layer into every use of its output, so the same tuple already appears three
 times in this excerpt. The full output is 185 lines long and is in
-`StagedNet/Forward.lean`. On the right is all of `netFn'`, built with
+`StagedNet/Forward.lean`. The second block is all of `netFn'`, built with
 `forward'`. It binds each layer's output with an object-level `let` (printed as
 `have`), and in a dense layer it adds each bias directly to its dot product
 instead of building the whole `W x` tuple first. Both are plain `Float`
 arithmetic, `max`, projections and pairs, with no `Arch`, recursion or
 `forward` left.
 
-<table>
-<tr><th><code>#print netFn</code></th><th><code>#print netFn'</code></th></tr>
-<tr>
-<td valign="top">
+`#print netFn`:
 
 ```lean
 def StagedNet.netFn : (((Float × Float × Unit) × (Float × Float × Unit) × (Float × Float × Unit) × Unit) ×
@@ -109,8 +106,7 @@ fun p x =>
   ...
 ```
 
-</td>
-<td valign="top">
+`#print netFn'`:
 
 ```lean
 def StagedNet.netFn' : (((Float × Float × Unit) × (Float × Float × Unit) × (Float × Float × Unit) × Unit) ×
@@ -128,10 +124,6 @@ fun p x =>
       p.snd.snd.snd.fst,
     ())
 ```
-
-</td>
-</tr>
-</table>
 
 ### Size mismatches are type errors
 
