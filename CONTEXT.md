@@ -58,7 +58,7 @@ The metaprogram that, given an architecture, emits the code computing its output
 _Avoid_: interpreter, compiler
 
 **Net**:
-A concrete architecture value, `net : Arch 2 1`, and its emitted function `netFn`.
+A concrete architecture value, `net : Arch 2 1`, and its emitted function `netFn`. `netFnInt` is the same net staged over `Int`, for the proofs.
 
 **Reference implementation**:
 The ordinary unstaged Lean function, written over Fin vectors with Mathlib's `dotProduct` and `Matrix.mulVec`, that the emitted code is proved equal to.
